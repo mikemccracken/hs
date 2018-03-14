@@ -1,0 +1,141 @@
+# -*- mode: shell-script; -*-
+
+HISTIGNORE="$HISTIGNORE:hs *:hl:hl *:he *:hd *:hcat *:&:"
+
+hs_mknewscript(){
+    echo "# -*- mode: shell-script; -*- " > $1
+    chmod +x $1
+}
+
+hs_checkinit(){
+    [ -d ~/.hs/ ] || mkdir -p ~/.hs
+    [ -d ~/.hs/.git ] || {
+        pushd ~/.hs
+        git init .
+        popd
+    }
+    [ -f ~/.hs/.gitignore ] || {
+        cat > ~/.hs/.gitignore <<EOF
+*~
+EOF
+    }
+}
+
+hs() {
+    # 1: name of new snip
+    # 2: number of commands to get
+    # 3: pattern to filter commands
+    hs_checkinit
+    label=$1
+    if [ "x$1" = "x" ]; then
+        echo "write a name, no spaces:"
+        read label
+    fi
+    fn=~/.hs/$label
+    num=$2
+    if [ "x$2" = "x" ]; then
+        num=10
+    fi
+
+    hs_mknewscript $fn
+
+    if [ -n "$3" ]; then
+        history $num | cut -d ' ' -f 4- | grep $3 >> $fn
+    else
+        history $num | cut -d ' ' -f 4- >> $fn
+    fi
+    pushd ~/.hs > /dev/null
+    $EDITOR $fn
+    git add $fn
+    git commit -m "created by hs"
+    popd > /dev/null
+}
+
+hs_expandfilearg() {
+    arg=$1
+    shopt -s nullglob
+    pushd ~/.hs > /dev/null
+    files=$(git ls-files | grep ${1})
+    filessep=$(echo $files | tr '\n' ' ')
+    popd > /dev/null
+    argl=($filessep)
+    [ ${#argl[@]} -ne 1 ] && {
+        echo "${#argl[@]} matches for $1: $files."
+        return ${#argl[@]}
+    }
+    echo "${argl[0]}"
+    return 1
+}
+
+hs_expandmsg() {
+    orig=$1
+    expanded=$2
+    # not sure we actually want this.
+    # [ ${#orig} -ne ${#expanded} ] && echo "hs: expanded $orig to $expanded"
+}
+
+hr() {
+    fn=$(hs_expandfilearg $1)
+    [ $? -ne 1 ] && {
+        echo $fn
+        return
+    }
+    hs_expandmsg $1 $fn
+    fn=~/.hs/$fn
+    shift
+    set -- $@
+    . $fn "$@"
+}
+
+hl() {
+    pat=$1
+    pushd ~/.hs > /dev/null
+    if [ -n "$pat" ]; then
+        hfiles=$(git ls-files | grep $pat)
+    else
+        hfiles=$(git ls-files)
+    fi
+    for f in $hfiles ; do
+        desc=$(awk 'FNR == 2 { print;}' ~/.hs/$f)
+        printf "%-20s $desc\n" "$f"
+    done
+    popd > /dev/null
+}
+
+hd() {
+    hs_checkinit
+    fn=$(hs_expandfilearg $1)
+    [ $? -ne 1 ] && {
+        echo "can't delete:" $fn
+        return
+    }
+    hs_expandmsg $1 $fn    
+    pushd ~/.hs > /dev/null    
+    git rm $fn
+    git commit -m"removed by hd"
+    popd > /dev/null
+}
+
+he() {
+    hs_checkinit
+    fn=~/.hs/$1
+    [ -f $fn ] || {
+        echo "creating $1"
+        hs_mknewscript $fn
+    }
+    $EDITOR $fn
+    pushd ~/.hs > /dev/null
+    git add $fn
+    git commit -m "edited by he"
+    popd > /dev/null
+}
+
+hcat() {
+    hs_checkinit
+    fn=$(hs_expandfilearg $1)
+    [ $? -ne 1 ] && {
+        echo $fn
+        return
+    }
+    cat ~/.hs/$fn
+}

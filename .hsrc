@@ -61,7 +61,7 @@ hs_expandfilearg() {
     arg=$1
     shopt -s nullglob
     pushd ~/.hs > /dev/null
-    files=$(git ls-files | grep ${1})
+    files=$(git ls-files [^.]* | grep ${1})
     filessep=$(echo $files | sort | tr '\n' ' ')
     popd > /dev/null
     argl=($filessep)
@@ -106,9 +106,9 @@ hl() {
     pat=$1
     pushd ~/.hs > /dev/null
     if [ -n "$pat" ]; then
-        hfiles=$(git ls-files | grep $pat)
+        hfiles=$(git ls-files [^.]* | grep $pat)
     else
-        hfiles=$(git ls-files)
+        hfiles=$(git ls-files [^.]*)
     fi
     for f in $hfiles ; do
         desc=$(awk 'FNR == 2 { print;}' ~/.hs/$f)

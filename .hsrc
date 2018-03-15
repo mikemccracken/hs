@@ -139,8 +139,8 @@ he() {
         echo "say more: " $fn
         return
     }
-    $EDITOR $fn
     pushd ~/.hs > /dev/null
+    $EDITOR $fn
     git add $fn
     git commit -m "edited by he"
     popd > /dev/null

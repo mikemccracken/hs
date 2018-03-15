@@ -23,8 +23,9 @@ EOF
 
 hs() {
     # 1: name of new snip
-    # 2: number of commands to get
-    # 3: pattern to filter commands
+    # 2: number of commands to get (ignored if stdin has data)
+    # 3: pattern to filter commands (ignored if stdin has data)
+    pipe_input=$(cat -)
     hs_checkinit
     label=$1
     if [ "x$1" = "x" ]; then
@@ -32,17 +33,22 @@ hs() {
         read label
     fi
     fn=~/.hs/$label
-    num=$2
-    if [ "x$2" = "x" ]; then
-        num=10
-    fi
 
     hs_mknewscript $fn
 
-    if [ -n "$3" ]; then
-        history $num | cut -d ' ' -f 4- | grep $3 >> $fn
+    if [ -z "$pipe_input" ]; then
+        num=$2
+        if [ "x$2" = "x" ]; then
+            num=10
+        fi
+
+        if [ -n "$3" ]; then
+            history $num | cut -d ' ' -f 4- | grep $3 >> $fn
+        else
+            history $num | cut -d ' ' -f 4- >> $fn
+        fi
     else
-        history $num | cut -d ' ' -f 4- >> $fn
+        echo "$pipe_input" >> $fn
     fi
     pushd ~/.hs > /dev/null
     $EDITOR $fn
@@ -56,15 +62,20 @@ hs_expandfilearg() {
     shopt -s nullglob
     pushd ~/.hs > /dev/null
     files=$(git ls-files | grep ${1})
-    filessep=$(echo $files | tr '\n' ' ')
+    filessep=$(echo $files | sort | tr '\n' ' ')
     popd > /dev/null
     argl=($filessep)
-    [ ${#argl[@]} -ne 1 ] && {
-        echo "${#argl[@]} matches for $1: $files."
-        return ${#argl[@]}
+    [ ${#argl[@]} -eq 0 ] && {
+        echo "Couldn't find $1."
+        return 0
     }
-    echo "${argl[0]}"
-    return 1
+    [ ${#argl[@]} -eq 1 ] || [ "${argl[0]}" = "$1" ] && {
+        echo "${argl[0]}"
+        return 1
+    }
+
+    echo "${#argl[@]} matches for $1: $files."
+    return ${#argl[@]}
 }
 
 hs_expandmsg() {
@@ -113,19 +124,20 @@ hd() {
         echo "can't delete:" $fn
         return
     }
-    hs_expandmsg $1 $fn    
-    pushd ~/.hs > /dev/null    
+    hs_expandmsg $1 $fn
+    pushd ~/.hs > /dev/null
     git rm $fn
     git commit -m"removed by hd"
     popd > /dev/null
 }
 
+# he edits only existing snips
 he() {
     hs_checkinit
-    fn=~/.hs/$1
-    [ -f $fn ] || {
-        echo "creating $1"
-        hs_mknewscript $fn
+    fn=$(hs_expandfilearg $1)
+    [ $? -ne 1 ] && {
+        echo "say more: " $fn
+        return
     }
     $EDITOR $fn
     pushd ~/.hs > /dev/null

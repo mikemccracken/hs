@@ -75,6 +75,10 @@ hs_expandmsg() {
 }
 
 hr() {
+    [ -z "$1" ] && {
+        echo "nothing to run"
+        return
+    }
     fn=$(hs_expandfilearg $1)
     [ $? -ne 1 ] && {
         echo $fn

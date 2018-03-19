@@ -155,3 +155,21 @@ hcat() {
     }
     cat ~/.hs/$fn
 }
+
+_complete_hsfiles() {
+    local cur prev opts base
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    pushd ~/.hs > /dev/null
+    hsfiles=$(git ls-files [^.]*)
+    popd > /dev/null
+    COMPREPLY=($(compgen -W "${hsfiles}" -- ${cur}))
+    return 0
+}
+
+complete -F _complete_hsfiles hr
+complete -F _complete_hsfiles he
+complete -F _complete_hsfiles hcat
+complete -F _complete_hsfiles hd

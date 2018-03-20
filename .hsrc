@@ -100,6 +100,15 @@ hr() {
     shift
     set -- $@
     . $fn "$@"
+    rv=$?
+    rundir=$(pwd)
+    pushd ~/.hs/ > /dev/null
+    set -x
+    lastchangerev=$(git rev-list -1 --all $fn)
+    ts=$(date)
+    git notes append -m "ran $(basename $fn) on ${ts}, returned ${rv}" $lastchangerev
+    popd > /dev/null
+    return $rv
 }
 
 hl() {

@@ -97,17 +97,27 @@ hr() {
     }
     hs_expandmsg $1 $fn
     fn=~/.hs/$fn
+    hr_start=$(date '+%s')
     shift
     set -- $@
     . $fn "$@"
     rv=$?
+    hr_finish=$(date '+%s')    
     rundir=$(pwd)
     pushd ~/.hs/ > /dev/null
     lastchangerev=$(git rev-list -1 --all $fn)
     ts=$(date)
-    git notes append -m "ran $(basename $fn) on ${ts}, returned ${rv}" $lastchangerev
+    git notes append -m "ran $(basename $fn) on ${ts}, returned ${rv} after $(( hr_finish - hr_start )) seconds" $lastchangerev
     popd > /dev/null
     return $rv
+}
+
+hlog() {
+    fn=$(hs_expandfilearg $1)
+    hs_expandmsg $1 $fn
+    pushd ~/.hs > /dev/null
+    git log $fn
+    popd > /dev/null
 }
 
 hl() {
@@ -181,3 +191,4 @@ complete -F _complete_hsfiles hr
 complete -F _complete_hsfiles he
 complete -F _complete_hsfiles hcat
 complete -F _complete_hsfiles hd
+complete -F _complete_hsfiles hlog

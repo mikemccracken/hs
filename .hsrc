@@ -154,7 +154,7 @@ he() {
     hs_checkinit
     fn=$(hs_expandfilearg $1)
     [ $? -ne 1 ] && {
-        echo "say more: " $fn
+        echo "couldn't find a unique existing snip named that, say more: " $fn
         return
     }
     pushd ~/.hs > /dev/null

@@ -48,6 +48,17 @@ See a list of all the available snips with `hl`. It also prints the second line 
 
 Filter the list with `hl <pat>`. It just pipes to grep.
 
+Example:
+```
+$ hl
+buildiso             # sudo: clean and run build_iso
+hfind                # search all the separate screen window bash_history.N files
+lookiso              # download and mount an ISO usage: lookiso URL/isofilename iso-name [LAYERNAME]
+runimg               # run a VM on an installed disk.img
+runiso               # run a VM that installs $1 on disk.img
+tbrl                 # testbed remote login 'tbrl test1 host1[,host2] command'
+```
+
 ## hd: history delete
 
 remove a snip with `hd <name>`.

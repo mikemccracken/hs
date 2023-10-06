@@ -1,19 +1,17 @@
+#!/bin/bash
 # -*- mode: shell-script; -*-
 
 HISTIGNORE="$HISTIGNORE:hs *:hl:hl *:he *:hd *:hcat *:&:"
 
 hs_mknewscript(){
-    echo "# -*- mode: shell-script; -*- " > $1
-    chmod +x $1
+    local newsnipname="$1"
+    echo "# -*- mode: shell-script; -*- " > "${newsnipname}"
+    chmod +x "${newsnipname}"
 }
 
 hs_checkinit(){
     [ -d ~/.hs/ ] || mkdir -p ~/.hs
-    [ -d ~/.hs/.git ] || {
-        pushd ~/.hs
-        git init .
-        popd
-    }
+    [ -d ~/.hs/.git ] || (cd ~/.hs || exit; git init . )
     [ -f ~/.hs/.gitignore ] || {
         cat > ~/.hs/.gitignore <<EOF
 *~
@@ -21,49 +19,65 @@ EOF
     }
 }
 
+hs_usage() {
+    echo "hs:"
+    echo "  hs newsnipname"
+    echo "  hs newsnipname <ncmds>"
+    echo "  hs newsnipname <ncmds> <filter>"
+}
+
 hs() {
     # 1: name of new snip
-    # 2: number of commands to get (ignored if stdin has data)
-    # 3: pattern to filter commands (ignored if stdin has data)
-    pipe_input=$(cat -)
+    # 2: number of commands to get
+    # 3: pattern to filter commands
     hs_checkinit
-    label=$1
-    if [ "x$1" = "x" ]; then
-        echo "write a name, no spaces:"
-        read label
+    local label="$1"
+    local ncmds=$2
+    local filter="$3"
+
+    fn=$(hs_expandfilearg "$1")
+    [ $? -ne 0 ] && {
+        echo "use he to edit existing snips: $fn"
+        return
+    }
+
+    if [[ "$1" = "" ]]; then
+        echo "snipname required."
+        hs_usage
+        return
     fi
-    fn=~/.hs/$label
+    fn=~/.hs/"$label"
 
-    hs_mknewscript $fn
+    hs_mknewscript "$fn"
 
-    if [ -z "$pipe_input" ]; then
-        num=$2
-        if [ "x$2" = "x" ]; then
-            num=10
-        fi
-
-        if [ -n "$3" ]; then
-            history $num | cut -d ' ' -f 4- | grep $3 >> $fn
-        else
-            history $num | cut -d ' ' -f 4- >> $fn
-        fi
+    if [ "$2" = "" ]; then
+        ncmds=10
+    fi
+    if [ -n "$3" ]; then
+        HISTTIMEFORMAT="" history $ncmds | cut -d ' ' -f 4- | grep "${filter}" >> "$fn"
     else
-        echo "$pipe_input" >> $fn
+        HISTTIMEFORMAT="" history $ncmds | cut -d ' ' -f 4- >> "$fn"
     fi
-    pushd ~/.hs > /dev/null
-    $EDITOR $fn
-    git add $fn
+
+    pushd ~/.hs > /dev/null || return
+    $EDITOR "$fn"
+    git add "$fn"
     git commit -m "created by hs"
-    popd > /dev/null
+    popd > /dev/null || return
 }
 
 hs_expandfilearg() {
-    arg=$1
     shopt -s nullglob
-    pushd ~/.hs > /dev/null
-    files=$(git ls-files [^.]* | grep ${1})
-    filessep=$(echo $files | sort | tr '\n' ' ')
-    popd > /dev/null
+    pushd ~/.hs > /dev/null || {
+        echo "pushd ~/.hs failed?"
+        return
+    }
+    files=$(git ls-files [^.]* | grep "${1}")
+    filessep=$(echo "$files" | sort | tr '\n' ' ')
+    popd > /dev/null || {
+        echo "popd failed?"
+        return
+    }
     argl=($filessep)
     [ ${#argl[@]} -eq 0 ] && {
         echo "Couldn't find $1."
@@ -78,100 +92,97 @@ hs_expandfilearg() {
     return ${#argl[@]}
 }
 
-hs_expandmsg() {
-    orig=$1
-    expanded=$2
-    # not sure we actually want this.
-    # [ ${#orig} -ne ${#expanded} ] && echo "hs: expanded $orig to $expanded"
-}
-
 hr() {
     [ -z "$1" ] && {
         echo "nothing to run"
         return
     }
-    fn=$(hs_expandfilearg $1)
+    fn=$(hs_expandfilearg "$1")
     [ $? -ne 1 ] && {
-        echo $fn
+        echo "$fn"
         return
     }
-    hs_expandmsg $1 $fn
-    fn=~/.hs/$fn
+
+    fn="$HOME/.hs/$fn"
     hr_start=$(date '+%s')
     shift
     set -- $@
-    . $fn "$@"
+    . "$fn" "$@"
     rv=$?
     hr_finish=$(date '+%s')    
-    rundir=$(pwd)
-    pushd ~/.hs/ > /dev/null
-    lastchangerev=$(git rev-list -1 --all $fn)
+
+    pushd ~/.hs/ > /dev/null || return
+    lastchangerev=$(git rev-list -1 --all "$fn")
     ts=$(date)
-    git notes append -m "ran $(basename $fn) on ${ts}, returned ${rv} after $(( hr_finish - hr_start )) seconds" $lastchangerev
-    popd > /dev/null
+    git notes append -m "ran $(basename "$fn") on ${ts}, returned ${rv} after $(( hr_finish - hr_start )) seconds" "$lastchangerev"
+    popd > /dev/null || return
     return $rv
 }
 
 hlog() {
-    fn=$(hs_expandfilearg $1)
-    hs_expandmsg $1 $fn
-    pushd ~/.hs > /dev/null
-    git log $fn
-    popd > /dev/null
+    fn=$(hs_expandfilearg "$1")
+
+    pushd ~/.hs > /dev/null || return
+    git log "$fn"
+    popd > /dev/null || return
 }
 
 hl() {
     pat=$1
-    pushd ~/.hs > /dev/null
+    pushd ~/.hs > /dev/null || return
     if [ -n "$pat" ]; then
-        hfiles=$(git ls-files [^.]* | grep $pat)
+        hfiles=$(git ls-files [^.]* | grep "$pat")
     else
         hfiles=$(git ls-files [^.]*)
     fi
     for f in $hfiles ; do
-        desc=$(awk 'FNR == 2 { print;}' ~/.hs/$f)
+        desc=$(awk 'FNR == 2 { print;}' ~/.hs/"$f")
         printf "%-20s $desc\n" "$f"
     done
-    popd > /dev/null
+    popd > /dev/null || return
 }
 
 hd() {
     hs_checkinit
-    fn=$(hs_expandfilearg $1)
+    fn=$(hs_expandfilearg "$1")
     [ $? -ne 1 ] && {
-        echo "can't delete:" $fn
+        echo "can't delete: $fn"
         return
     }
-    hs_expandmsg $1 $fn
-    pushd ~/.hs > /dev/null
-    git rm $fn
+
+    pushd ~/.hs > /dev/null || return
+    git rm "$fn"
     git commit -m"removed by hd"
-    popd > /dev/null
+    popd > /dev/null || return
 }
 
 # he edits only existing snips
 he() {
-    hs_checkinit
-    fn=$(hs_expandfilearg $1)
-    [ $? -ne 1 ] && {
-        echo "couldn't find a unique existing snip named that, say more: " $fn
+    [ -z "$EDITOR" ] && {
+        echo "no EDITOR set"
         return
     }
-    pushd ~/.hs > /dev/null
-    $EDITOR $fn
-    git add $fn
+    hs_checkinit
+    fn=$(hs_expandfilearg "$1")
+    [ $? -ne 1 ] && {
+        echo "couldn't find a unique existing snip named that, say more: $fn"
+        return
+    }
+    pushd ~/.hs > /dev/null || return
+    $EDITOR "$fn"
+    git add "$fn"
     git commit -m "edited by he"
-    popd > /dev/null
+    popd > /dev/null || return
 }
 
 hcat() {
     hs_checkinit
-    fn=$(hs_expandfilearg $1)
+    fn=$(hs_expandfilearg "$1")
     [ $? -ne 1 ] && {
-        echo $fn
+        echo "$fn"
         return
     }
-    cat ~/.hs/$fn
+    cat ~/.hs/"$fn"
 }
 
 _complete_hsfiles() {
@@ -180,9 +191,9 @@ _complete_hsfiles() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    pushd ~/.hs > /dev/null
+    pushd ~/.hs > /dev/null || return
     hsfiles=$(git ls-files [^.]*)
-    popd > /dev/null
+    popd > /dev/null || return
     COMPREPLY=($(compgen -W "${hsfiles}" -- ${cur}))
     return 0
 }

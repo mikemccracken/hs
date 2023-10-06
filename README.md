@@ -1,7 +1,18 @@
 # hs
 Bash utilities for munging history into reusable scripts
 
-Type a few commands and decide that you want to reuse them? hit up `hs` to save it as a snip in a central git repo that you can keep synced up with other machines.
+Type a few commands and decide that you want to reuse them? Hit up `hs` to save it as a snip in a central git repo that you can keep synced up with other machines.
+
+## get it
+
+```
+cd ~
+git clone https://github.com/mikemccracken/hs.git hsrc
+# test:
+. ~/hsrc/.hsrc
+# persist:
+echo ". ~/hsrc/.hsrc" >> .bashrc
+```
 
 ## hs: history save
 

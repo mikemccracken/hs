@@ -3,7 +3,7 @@ Bash utilities for munging history into reusable scripts
 
 Type a few commands and decide that you want to reuse them? Run `hs <name of your snip> 5` to save the last 5 lines from history as a snip in a git repo at `~/.hs/` that you can keep synced up with other machines.
 
-Run it again with `hr <name of your snip> --any args you want`. It is run in the current shell, not a subshell.
+Run it again with `hr <name of your snip> --any args you want`. It is run in the current shell, not a subshell, so you can do things in snips that persistently change your shell environment like setting env vars or changing the current directory.
 
 ## get it
 

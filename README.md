@@ -1,7 +1,9 @@
 # hs
 Bash utilities for munging history into reusable scripts
 
-Type a few commands and decide that you want to reuse them? Hit up `hs` to save it as a snip in a git repo at `~/.hs/` that you can keep synced up with other machines.
+Type a few commands and decide that you want to reuse them? Run `hs <name of your snip> 5` to save the last 5 lines from history as a snip in a git repo at `~/.hs/` that you can keep synced up with other machines.
+
+Run it again with `hr <name of your snip> --any args you want`. It is run in the current shell, not a subshell.
 
 ## get it
 
@@ -47,7 +49,7 @@ You can use tab completion if you forget the name. `hr rep<TAB>`.
 
 You can pass args to 'hr', they'll be sent as args to your script.
 
-*Note* that these aren't really full scripts, they're *snips*, so they're run in the same shell that you start from. They're run with `. $fn "$@"`. So if you `exit` in the snip, you will exit your shell when you `hr` that snip. But it saves you from needing to think of all the args. They're just little snips!
+*Note* that these aren't really full scripts, they're *snips*, so they're run in the same shell that you start from. They're run with `. $fn "$@"`. So if you `exit` in the snip, you will exit your shell when you `hr` that snip.
 
 ### hr run notes
 

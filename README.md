@@ -1,7 +1,7 @@
 # hs
 Bash utilities for munging history into reusable scripts
 
-Type a few commands and decide that you want to reuse them? Hit up `hs` to save it as a snip in a central git repo that you can keep synced up with other machines.
+Type a few commands and decide that you want to reuse them? Hit up `hs` to save it as a snip in a git repo at `~/.hs/` that you can keep synced up with other machines.
 
 ## get it
 
@@ -34,7 +34,7 @@ So after you type all that once, use `hs` to capture that as a *snip*. (`hs` = h
 # hs repulltest 10
 ```
 
-This will call `$EDITOR` on a file `~/.hs/repulltest` with the last 10 lines of history and let you write a script. When you save and exit, it'll add and commit it to the hs git repo.
+This will call `$EDITOR` on a file in your hs repo at `~/.hs/` named `repulltest` with the last 10 lines of history and let you write a script. When you save and exit, it'll add and commit it to the git repo.
 
 ## hr: history run
 Then when you want to do the same thing over again, just use `hr`, "history run":
